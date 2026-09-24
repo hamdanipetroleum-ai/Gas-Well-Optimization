@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gas Well Optimum Production Rate Analyzer</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            500: '#0284c7',
+                            600: '#0369a1',
+                            dark: '#0f172a',
+                            panel: '#1e293b',
+                            border: '#334155'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js & Annotation Plugin -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@2.2.1/dist/chartjs-plugin-annotation.min.js"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0b1120;
+            color: #f1f5f9;
+        }
+        .code-font {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="bg-[#0b1120] text-slate-100 min-h-screen flex flex-col">
+
+    <!-- Header Navbar -->
+    <header class="border-b border-slate-800 bg-slate-900/90 backdrop-blur sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="bg-gradient-to-tr from-cyan-500 to-blue-600 p-2.5 rounded-xl shadow-lg shadow-cyan-500/20">
+                    <i class="fa-solid fa-gauge-high text-xl text-white"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg text-slate-100 tracking-wide flex items-center gap-2">
+                        GasWell Optima <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">Simple Edition</span>
+                    </h1>
+                    <p class="text-xs text-slate-400">Analisis Laju Produksi Optimum Gas & Batas Operasi Aman</p>
+                </div>
+            </div>
+            
+            <button onclick="resetDefaults()" class="px-3 py-1.5 text-xs font-medium text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition flex items-center gap-1.5 border border-slate-700">
+                <i class="fa-solid fa-rotate-left"></i> Reset Parameter
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content Layout -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <!-- LEFT COLUMN: Simplified 6 Parameter Input (4 Cols) -->
+        <section class="lg:col-span-4 space-y-5">
+            <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl">
+                <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-800">
+                    <h2 class="font-semibold text-slate-200 flex items-center gap-2 text-sm">
+                        <i class="fa-solid fa-sliders text-cyan-400"></i> Data Input Sumur (6 Parameter)
+                    </h2>
+                    <span class="text-[10px] font-mono bg-cyan-500/10 text-cyan-400 px-2 py-0.5 rounded border border-cyan-500/20">Real-time Calculation</span>
+                </div>
+
+                <form id="simplifiedForm" oninput="calculateAll()" class="space-y-4 text-xs">
+                    
+                    <div>
+                        <label class="block text-slate-300 font-medium mb-1 flex items-center justify-between">
+                            <span>1. Tekanan Reservoir ($P_{res}$)</span>
+                            <span class="text-slate-500 text-[10px]">psi</span>
+                        </label>
+                        <input type="number" id="pRes" value="3200" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 font-mono text-sm focus:border-cyan-500 focus:outline-none transition">
+                    </div>
+
+                    <div>
+                        <label class="block text-slate-300 font-medium mb-1 flex items-center justify-between">
+                            <span>2. Tekanan Kepala Sumur ($P_{thp}$)</span>
+                            <span class="text-slate-500 text-[10px]">psi</span>
+                        </label>
+                        <input type="number" id="pThp" value="450" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 font-mono text-sm focus:border-cyan-500 focus:outline-none transition">
+                    </div>
+
+                    <div>
+                        <label class="block text-slate-300 font-medium mb-1 flex items-center justify-between">
+                            <span>3. Kedalaman Sumur (TVD/MD)</span>
+                            <span class="text-slate-500 text-[10px]">feet</span>
+                        </label>
+                        <input type="number" id="depth" value="8500" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 font-mono text-sm focus:border-cyan-500 focus:outline-none transition">
+                    </div>
+
+                    <div>
+                        <label class="block text-slate-300 font-medium mb-1 flex items-center justify-between">
+                            <span>4. Diameter Dalam Tubing (ID)</span>
+                            <span class="text-slate-500 text-[10px]">inch</span>
+                        </label>
+                        <input type="number" step="0.001" id="tubingID" value="2.441" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 font-mono text-sm focus:border-cyan-500 focus:outline-none transition">
+                    </div>
+
+                    <div>
+                        <label class="block text-slate-300 font-medium mb-1 flex items-center justify-between">
+                            <span>5. Potensi Maksimum Sumur ($Q_{AOF}$)</span>
+                            <span class="text-slate-500 text-[10px]">MMSCFD</span>
+                        </label>
+                        <input type="number" step="0.1" id="aof" value="12.5" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 font-mono text-sm focus:border-cyan-500 focus:outline-none transition">
+                    </div>
+
+                    <div>
+                        <label class="block text-cyan-300 font-bold mb-1 flex items-center justify-between">
+                            <span>6. Laju Produksi Gas Saat Ini ($Q_{act}$)</span>
+                            <span class="text-cyan-400 text-[10px]">MMSCFD</span>
+                        </label>
+                        <input type="number" step="0.1" id="qAct" value="3.5" class="w-full bg-slate-950 border-2 border-cyan-500/80 rounded-lg px-3 py-2 text-cyan-300 font-bold font-mono text-sm focus:border-cyan-400 focus:outline-none transition">
+                    </div>
+
+                </form>
+
+                <!-- Hidden Physics Standard Settings Summary -->
+                <div class="mt-5 p-3 rounded-xl bg-slate-950/60 border border-slate-800 text-[11px] text-slate-400 space-y-1">
+                    <p class="font-semibold text-slate-300 flex items-center gap-1.5">
+                        <i class="fa-solid fa-circle-info text-cyan-400"></i> Asumsi Standar Lapangan Auto:
+                    </p>
+                    <p>• Gas Gravity = 0.68 | Liquid SG = 0.82</p>
+                    <p>• Safety Factor ($SF_{LL}$) = 1.15 | API 14E C = 120</p>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- RIGHT COLUMN: Dashboard Results & Charts (8 Cols) -->
+        <section class="lg:col-span-8 space-y-5">
+
+            <!-- Health Status Banner -->
+            <div id="statusBanner" class="p-5 rounded-2xl border transition-all duration-300 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-slate-900 border-slate-800">
+                <div class="flex items-center gap-4">
+                    <div id="statusIconBg" class="p-4 rounded-2xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-3xl flex items-center justify-center w-16 h-16 shrink-0">
+                        <i id="statusIcon" class="fa-solid fa-circle-check"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-semibold tracking-wider uppercase text-slate-400">Status Operasional Sumur</span>
+                            <span id="statusBadge" class="px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">SAFE OPERATING WINDOW</span>
+                        </div>
+                        <h2 id="statusTitle" class="text-lg font-bold text-slate-100 mt-1">Aliran Gas Dalam Batas Aman Produksi</h2>
+                        <p id="statusDesc" class="text-xs text-slate-400 mt-1 max-w-xl">Laju $Q_{act}$ berada di zona aman untuk mengangkat cairan tanpa menyebabkan erosi tubing.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Auto Calculated Metric Cards -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                
+                <div class="bg-slate-900 border border-rose-500/30 p-3.5 rounded-xl shadow-lg bg-gradient-to-br from-slate-900 to-rose-950/20">
+                    <div class="text-[11px] text-rose-300 font-semibold flex items-center justify-between">
+                        <span>Batas Bawah ($Q_{min}$)</span>
+                        <i class="fa-solid fa-arrow-down-short-wide text-rose-400"></i>
+                    </div>
+                    <div class="mt-2 flex items-baseline gap-1">
+                        <span id="qMinVal" class="text-2xl font-bold font-mono text-rose-400">--</span>
+                        <span class="text-xs text-slate-400">MMSCFD</span>
+                    </div>
+                    <span class="text-[10px] text-slate-500 mt-1 block">Turner + Liquid Loading Limit</span>
+                </div>
+
+                <div class="bg-slate-900 border border-emerald-500/30 p-3.5 rounded-xl shadow-lg bg-gradient-to-br from-slate-900 to-emerald-950/20">
+                    <div class="text-[11px] text-emerald-300 font-semibold flex items-center justify-between">
+                        <span>Laju Optimum ($Q_{opt}$)</span>
+                        <i class="fa-solid fa-bullseye text-emerald-400"></i>
+                    </div>
+                    <div class="mt-2 flex items-baseline gap-1">
+                        <span id="qOptVal" class="text-2xl font-bold font-mono text-emerald-400">--</span>
+                        <span class="text-xs text-slate-400">MMSCFD</span>
+                    </div>
+                    <span class="text-[10px] text-slate-500 mt-1 block">Rekomendasi Operasional</span>
+                </div>
+
+                <div class="bg-slate-900 border border-amber-500/30 p-3.5 rounded-xl shadow-lg bg-gradient-to-br from-slate-900 to-amber-950/20">
+                    <div class="text-[11px] text-amber-300 font-semibold flex items-center justify-between">
+                        <span>Batas Atas ($Q_{max}$)</span>
+                        <i class="fa-solid fa-arrow-up-wide-short text-amber-400"></i>
+                    </div>
+                    <div class="mt-2 flex items-baseline gap-1">
+                        <span id="qMaxVal" class="text-2xl font-bold font-mono text-amber-400">--</span>
+                        <span class="text-xs text-slate-400">MMSCFD</span>
+                    </div>
+                    <span class="text-[10px] text-slate-500 mt-1 block">API 14E Erosional Limit</span>
+                </div>
+
+                <div class="bg-slate-900 border border-cyan-500/30 p-3.5 rounded-xl shadow-lg bg-gradient-to-br from-slate-900 to-cyan-950/20">
+                    <div class="text-[11px] text-cyan-300 font-semibold flex items-center justify-between">
+                        <span>Laju Aktif ($Q_{act}$)</span>
+                        <i class="fa-solid fa-gauge text-cyan-400"></i>
+                    </div>
+                    <div class="mt-2 flex items-baseline gap-1">
+                        <span id="qActVal" class="text-2xl font-bold font-mono text-cyan-300">--</span>
+                        <span class="text-xs text-slate-400">MMSCFD</span>
+                    </div>
+                    <span class="text-[10px] text-slate-500 mt-1 block">Input Aktif Lapangan</span>
+                </div>
+
+            </div>
+
+            <!-- Dynamic Envelope Range Bar -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col space-y-2">
+                <div class="flex justify-between items-center text-xs">
+                    <span class="text-slate-300 font-semibold flex items-center gap-2">
+                        <i class="fa-solid fa-sliders text-cyan-400"></i> Safe Operating Window Indicator
+                    </span>
+                    <span id="envStatusText" class="font-mono text-emerald-400 font-medium">--</span>
+                </div>
+                
+                <div class="relative w-full h-6 bg-slate-950 rounded-full overflow-hidden border border-slate-800 flex">
+                    <div id="barUnsafe" class="h-full bg-rose-500/30 border-r border-rose-500 flex items-center justify-center text-[9px] font-bold text-rose-300 transition-all duration-300" style="width: 25%;">
+                        BAHAYA LIQUID LOADING
+                    </div>
+                    <div id="barSafe" class="h-full bg-emerald-500/25 flex items-center justify-center text-[9px] font-bold text-emerald-400 transition-all duration-300" style="width: 50%;">
+                        JENDELA OPERASI AMAN
+                    </div>
+                    <div id="barErosion" class="h-full bg-amber-500/30 border-l border-amber-500 flex items-center justify-center text-[9px] font-bold text-amber-300 transition-all duration-300" style="width: 25%;">
+                        RISIKO EROSI
+                    </div>
+                    <div id="needleActual" class="absolute top-0 bottom-0 w-1 bg-white shadow-[0_0_10px_#ffffff] z-10 transition-all duration-300" style="left: 35%;">
+                        <div class="w-3 h-3 bg-white rotate-45 -ml-1 -mt-1 rounded-sm"></div>
+                    </div>
+                </div>
+
+                <div class="flex justify-between text-[10px] font-mono text-slate-400 px-1">
+                    <span>0 MMSCFD</span>
+                    <span id="qMinBarLabel" class="text-rose-400 font-bold">Qmin: --</span>
+                    <span id="qActBarLabel" class="text-cyan-300 font-bold">Qact: --</span>
+                    <span id="qMaxBarLabel" class="text-amber-400 font-bold">Qmax: --</span>
+                </div>
+            </div>
+
+            <!-- Chart Display with Navigation Tabs -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4 shadow-xl">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
+                    <h3 class="font-semibold text-slate-200 text-sm flex items-center gap-2">
+                        <i class="fa-solid fa-chart-area text-cyan-400"></i> Visualisasi Kurva Nodal & Safe Operating Window
+                    </h3>
+                    <div class="flex bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs">
+                        <button onclick="switchTab('ipr')" id="btnTabIpr" class="px-3 py-1.5 rounded-lg font-medium text-cyan-400 bg-slate-800 transition">
+                            IPR vs VLP (Nodal)
+                        </button>
+                        <button onclick="switchTab('crit')" id="btnTabCrit" class="px-3 py-1.5 rounded-lg font-medium text-slate-400 hover:text-slate-200 transition">
+                            Sensitivitas THP vs Limits
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tab 1: IPR vs VLP Chart -->
+                <div id="tabIpr" class="relative h-[360px] w-full">
+                    <canvas id="iprChart"></canvas>
+                </div>
+
+                <!-- Tab 2: Limits Sensitivity Chart -->
+                <div id="tabCrit" class="relative h-[360px] w-full hidden">
+                    <canvas id="critChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Engineering Actionable Recommendations -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-2">
+                <h4 class="font-semibold text-slate-200 text-xs flex items-center gap-2">
+                    <i class="fa-solid fa-lightbulb text-amber-400"></i> Rekomendasi Keteknikan Lapangan
+                </h4>
+                <div id="actionRecs" class="text-xs text-slate-300 leading-relaxed space-y-1">
+                    <!-- Dynamic Recommendation Text -->
+                </div>
+            </div>
+
+        </section>
+    </main>
+
+    <!-- JavaScript Application Calculations & Chart Engines -->
+    <script>
+        let iprChartInstance = null;
+        let critChartInstance = null;
+
+        window.addEventListener('DOMContentLoaded', () => {
+            initCharts();
+            calculateAll();
+        });
+
+        function switchTab(tab) {
+            const tabIpr = document.getElementById('tabIpr');
+            const tabCrit = document.getElementById('tabCrit');
+            const btnTabIpr = document.getElementById('btnTabIpr');
+            const btnTabCrit = document.getElementById('btnTabCrit');
+
+            if (tab === 'ipr') {
+                tabIpr.classList.remove('hidden');
+                tabCrit.classList.add('hidden');
+                btnTabIpr.className = "px-3 py-1.5 rounded-lg font-medium text-cyan-400 bg-slate-800 transition";
+                btnTabCrit.className = "px-3 py-1.5 rounded-lg font-medium text-slate-400 hover:text-slate-200 transition";
+            } else {
+                tabIpr.classList.add('hidden');
+                tabCrit.classList.remove('hidden');
+                btnTabCrit.className = "px-3 py-1.5 rounded-lg font-medium text-cyan-400 bg-slate-800 transition";
+                btnTabIpr.className = "px-3 py-1.5 rounded-lg font-medium text-slate-400 hover:text-slate-200 transition";
+            }
+        }
+
+        function resetDefaults() {
+            document.getElementById('pRes').value = 3200;
+            document.getElementById('pThp').value = 450;
+            document.getElementById('depth').value = 8500;
+            document.getElementById('tubingID').value = 2.441;
+            document.getElementById('aof').value = 12.5;
+            document.getElementById('qAct').value = 3.5;
+            calculateAll();
+        }
+
+        function calculateAll() {
+            // Read Inputs
+            const pRes = parseFloat(document.getElementById('pRes').value) || 3200;
+            const pThp = parseFloat(document.getElementById('pThp').value) || 450;
+            const depth = parseFloat(document.getElementById('depth').value) || 8500;
+            const tubingID = parseFloat(document.getElementById('tubingID').value) || 2.441;
+            const aof = parseFloat(document.getElementById('aof').value) || 12.5;
+            const qAct = parseFloat(document.getElementById('qAct').value) || 0.1;
+
+            // Fluid Defaults
+            const gammaG = 0.68;
+            const liqSg = 0.82;
+            const sfLL = 1.15;
+            const cFactor = 120;
+            const sigma = 20;
+
+            // Intermediate Calculations
+            const rhoL = liqSg * 62.4;
+            const tempF = 100 + (depth / 100) * 1.2;
+            const tempR = tempF + 459.67;
+            const zFactor = 0.88;
+            const rhoG = 2.7 * gammaG * pThp / (zFactor * tempR);
+
+            const tubingArea = (Math.PI / 4) * Math.pow(tubingID / 12, 2);
+
+            // 1. AUTO Q_MIN (Turner et al. Critical Gas Velocity)
+            const deltaRho = Math.max(0.1, rhoL - rhoG);
+            const vCrit = 19.2 * Math.pow((sigma * deltaRho) / Math.pow(rhoG, 2), 0.25);
+            const qCritTurner = (3.06 * pThp * vCrit * tubingArea) / (zFactor * tempR);
+            const autoQmin = qCritTurner * sfLL;
+
+            // 2. AUTO Q_MAX (API RP 14E Erosional Velocity)
+            const rhoMix = rhoG + (30 * 5.615 / 1e6) * rhoL;
+            const vErosional = cFactor / Math.sqrt(Math.max(0.1, rhoMix));
+            const qMaxErosion = (3.06 * pThp * vErosional * tubingArea) / (zFactor * tempR);
+            const autoQmax = Math.min(qMaxErosion, aof * 0.85);
+
+            // 3. AUTO Q_OPTIMUM
+            const autoQopt = Math.max(autoQmin * 1.2, Math.min(autoQmax * 0.85, (autoQmin + autoQmax) / 2));
+
+            // Update UI Numerical Displays
+            document.getElementById('qMinVal').innerText = autoQmin.toFixed(2);
+            document.getElementById('qOptVal').innerText = autoQopt.toFixed(2);
+            document.getElementById('qMaxVal').innerText = autoQmax.toFixed(2);
+            document.getElementById('qActVal').innerText = qAct.toFixed(2);
+
+            // Update Status Banner and Envelope Indicator
+            updateDashboardStatus(qAct, autoQmin, autoQmax);
+
+            // Refresh Charts
+            updateCharts(pRes, aof, autoQmin, autoQmax, autoQopt, qAct, pThp, tubingID, depth, gammaG, zFactor, tempR, sigma, rhoL, cFactor, sfLL);
+        }
+
+        function updateDashboardStatus(qAct, qMin, qMax) {
+            const banner = document.getElementById('statusBanner');
+            const iconBg = document.getElementById('statusIconBg');
+            const icon = document.getElementById('statusIcon');
+            const badge = document.getElementById('statusBadge');
+            const title = document.getElementById('statusTitle');
+            const desc = document.getElementById('statusDesc');
+            const recs = document.getElementById('actionRecs');
+
+            if (qAct < qMin) {
+                banner.className = "p-5 rounded-2xl border transition-all duration-300 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-rose-950/30 border-rose-800/60";
+                iconBg.className = "p-4 rounded-2xl bg-rose-500/10 text-rose-400 border border-rose-500/20 text-3xl flex items-center justify-center w-16 h-16 shrink-0";
+                icon.className = "fa-solid fa-triangle-exclamation";
+                badge.className = "px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-rose-500/20 text-rose-400 border border-rose-500/30";
+                badge.innerText = "WARNING: LIQUID LOADING RISK";
+                title.innerText = "Laju Produksi Di Bawah Batas Kritis ($Q < Q_{min}$)";
+                desc.innerText = `Laju gas saat ini (${qAct.toFixed(2)} MMSCFD) kurang dari Qmin (${qMin.toFixed(2)} MMSCFD). Gas tidak cukup kuat mengangkat cairan kondensat/air.`;
+
+                recs.innerHTML = `
+                    <p>• <b>Tingkatkan Choke Opening:</b> Naikkan laju aliran gas hingga minimal <b>${qMin.toFixed(2)} MMSCFD</b>.</p>
+                    <p>• <b>Injeksi Foamer / Surfactant:</b> Bantuan pengangkatan cairan jika tekanan reservoir terbatas.</p>
+                    <p>• <b>Pertimbangkan Velocity String:</b> Kecilkan tubing ID jika tekanan reservoir terus turun.</p>
+                `;
+            } else if (qAct > qMax) {
+                banner.className = "p-5 rounded-2xl border transition-all duration-300 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-amber-950/30 border-amber-800/60";
+                iconBg.className = "p-4 rounded-2xl bg-amber-500/10 text-amber-400 border border-amber-500/20 text-3xl flex items-center justify-center w-16 h-16 shrink-0";
+                icon.className = "fa-solid fa-triangle-exclamation";
+                badge.className = "px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-amber-500/20 text-amber-400 border border-amber-500/30";
+                badge.innerText = "HIGH RISK: EROSION / DRAWDOWN";
+                title.innerText = "Laju Produksi Melampaui Batas Erosi ($Q > Q_{max}$)";
+                desc.innerText = `Laju gas saat ini (${qAct.toFixed(2)} MMSCFD) melebihi Qmax (${qMax.toFixed(2)} MMSCFD). Berisiko merusak tubing dan menyebabkan keausan peralatan.`;
+
+                recs.innerHTML = `
+                    <p>• <b>Kecilkan Choke / Adjust THP:</b> Turunkan laju aliran hingga mendekati <b>${((qMin + qMax) / 2).toFixed(2)} MMSCFD</b>.</p>
+                    <p>• <b>Evaluasi Kepasiran (Sand Production):</b> Pastikan tidak ada kepasiran dari reservoar akibat drawdown terlalu tinggi.</p>
+                `;
+            } else {
+                banner.className = "p-5 rounded-2xl border transition-all duration-300 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-emerald-950/20 border-emerald-800/50";
+                iconBg.className = "p-4 rounded-2xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-3xl flex items-center justify-center w-16 h-16 shrink-0";
+                icon.className = "fa-solid fa-circle-check";
+                badge.className = "px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-emerald-500/20 text-emerald-400 border border-emerald-500/30";
+                badge.innerText = "SAFE OPERATING WINDOW";
+                title.innerText = "Sumur Beroperasi Dalam Rentang Aman Optimum";
+                desc.innerText = `Laju gas (${qAct.toFixed(2)} MMSCFD) berada secara ideal di antara Qmin (${qMin.toFixed(2)} MMSCFD) dan Qmax (${qMax.toFixed(2)} MMSCFD).`;
+
+                recs.innerHTML = `
+                    <p>• <b>Kondisi Optimal:</b> Pertahankan kondisi choke saat ini.</p>
+                    <p>• <b>Target Laju Optimum:</b> Laju produksi ideal yang direkomendasikan adalah <b>${((qMin + qMax) / 2).toFixed(2)} MMSCFD</b>.</p>
+                `;
+            }
+
+            // Scale Bar Updates
+            const maxScale = Math.max(qMax * 1.25, qAct * 1.25, 10);
+            const unsafePct = (qMin / maxScale) * 100;
+            const safePct = (Math.max(0, qMax - qMin) / maxScale) * 100;
+            const erosionPct = Math.max(0, 100 - unsafePct - safePct);
+
+            document.getElementById('barUnsafe').style.width = unsafePct + '%';
+            document.getElementById('barSafe').style.width = safePct + '%';
+            document.getElementById('barErosion').style.width = erosionPct + '%';
+
+            const needlePct = Math.min(99, Math.max(1, (qAct / maxScale) * 100));
+            document.getElementById('needleActual').style.left = needlePct + '%';
+
+            document.getElementById('qMinBarLabel').innerText = `Qmin: ${qMin.toFixed(2)}`;
+            document.getElementById('qActBarLabel').innerText = `Qact: ${qAct.toFixed(2)}`;
+            document.getElementById('qMaxBarLabel').innerText = `Qmax: ${qMax.toFixed(2)}`;
+            document.getElementById('envStatusText').innerText = `Zona Aman: ${qMin.toFixed(2)} - ${qMax.toFixed(2)} MMSCFD`;
+        }
+
+        function initCharts() {
+            const ctxIpr = document.getElementById('iprChart').getContext('2d');
+            iprChartInstance = new Chart(ctxIpr, {
+                type: 'line',
+                data: { datasets: [] },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: { labels: { color: '#94a3b8', font: { family: 'Inter', size: 11 } } },
+                        tooltip: { backgroundColor: '#0f172a', borderColor: '#334155', borderWidth: 1 }
+                    },
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            title: { display: true, text: 'Laju Produksi Gas / Q (MMSCFD)', color: '#64748b' },
+                            grid: { color: '#1e293b' },
+                            ticks: { color: '#94a3b8' }
+                        },
+                        y: {
+                            title: { display: true, text: 'Tekanan Dasar Sumur / Pwf (psi)', color: '#64748b' },
+                            grid: { color: '#1e293b' },
+                            ticks: { color: '#94a3b8' }
+                        }
+                    }
+                }
+            });
+
+            const ctxCrit = document.getElementById('critChart').getContext('2d');
+            critChartInstance = new Chart(ctxCrit, {
+                type: 'line',
+                data: { datasets: [] },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: { labels: { color: '#94a3b8', font: { family: 'Inter', size: 11 } } },
+                        tooltip: { backgroundColor: '#0f172a', borderColor: '#334155', borderWidth: 1 }
+                    },
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            title: { display: true, text: 'Wellhead Pressure / THP (psi)', color: '#64748b' },
+                            grid: { color: '#1e293b' },
+                            ticks: { color: '#94a3b8' }
+                        },
+                        y: {
+                            title: { display: true, text: 'Batas Laju Gas / Q (MMSCFD)', color: '#64748b' },
+                            grid: { color: '#1e293b' },
+                            ticks: { color: '#94a3b8' }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateCharts(pRes, aof, qMin, qMax, qOpt, qAct, thp, tubingD, depth, gammaG, zFactor, tempR, sigma, rhoL, cFactor, sfLL) {
+            const iprPoints = [];
+            const tprPoints = [];
+            const qMinLine = [];
+            const qMaxLine = [];
+            const steps = 30;
+
+            const maxX = Math.max(qMax * 1.25, aof);
+
+            for (let i = 0; i <= steps; i++) {
+                const q = (maxX / steps) * i;
+                
+                // Simplified Inflow Performance Curve (IPR)
+                const pwfSq = Math.max(0, Math.pow(pRes, 2) - (Math.pow(q / aof, 0.85) * Math.pow(pRes, 2)));
+                const pwf = Math.sqrt(pwfSq);
+                iprPoints.push({ x: q, y: pwf });
+
+                // Simplified Outflow Tubing Performance Curve (VLP/TPR)
+                const staticHydrostatic = thp * Math.exp(0.000035 * depth * (gammaG / 0.65));
+                const frictionTerm = 8.0 * Math.pow(q, 1.85) / Math.pow(tubingD, 4.87);
+                const pwfTPR = staticHydrostatic + frictionTerm;
+                tprPoints.push({ x: q, y: pwfTPR });
+
+                // Limits Vertical Lines
+                qMinLine.push({ x: qMin, y: (pRes / steps) * i });
+                qMaxLine.push({ x: qMax, y: (pRes / steps) * i });
+            }
+
+            const activePwfSq = Math.max(0, Math.pow(pRes, 2) - (Math.pow(qAct / aof, 0.85) * Math.pow(pRes, 2)));
+            const activePwf = Math.sqrt(activePwfSq);
+
+            const optPwfSq = Math.max(0, Math.pow(pRes, 2) - (Math.pow(qOpt / aof, 0.85) * Math.pow(pRes, 2)));
+            const optPwf = Math.sqrt(optPwfSq);
+
+            // Chart 1 Update
+            iprChartInstance.data = {
+                datasets: [
+                    {
+                        label: 'Inflow Performance (IPR)',
+                        data: iprPoints,
+                        borderColor: '#0284c7',
+                        borderWidth: 2.5,
+                        fill: false,
+                        pointRadius: 0
+                    },
+                    {
+                        label: 'Tubing Performance (VLP)',
+                        data: tprPoints,
+                        borderColor: '#38bdf8',
+                        borderWidth: 2,
+                        fill: false,
+                        pointRadius: 0
+                    },
+                    {
+                        label: 'Batas Bawah Qmin',
+                        data: qMinLine,
+                        borderColor: '#f43f5e',
+                        borderWidth: 2,
+                        borderDash: [5, 5],
+                        fill: false,
+                        pointRadius: 0
+                    },
+                    {
+                        label: 'Batas Atas Qmax',
+                        data: qMaxLine,
+                        borderColor: '#f59e0b',
+                        borderWidth: 2,
+                        borderDash: [5, 5],
+                        fill: false,
+                        pointRadius: 0
+                    },
+                    {
+                        label: 'Titik Operasi AKTIF',
+                        data: [{ x: qAct, y: activePwf }],
+                        backgroundColor: (qAct >= qMin && qAct <= qMax) ? '#10b981' : '#f43f5e',
+                        borderColor: '#ffffff',
+                        borderWidth: 2,
+                        pointRadius: 7
+                    },
+                    {
+                        label: 'Target Optimum',
+                        data: [{ x: qOpt, y: optPwf }],
+                        backgroundColor: '#10b981',
+                        borderColor: '#ffffff',
+                        borderWidth: 2,
+                        pointStyle: 'rectRot',
+                        pointRadius: 8
+                    }
+                ]
+            };
+
+            iprChartInstance.options.plugins.annotation = {
+                annotations: {
+                    unsafeBox: {
+                        type: 'box',
+                        xMin: 0,
+                        xMax: qMin,
+                        backgroundColor: 'rgba(244, 63, 94, 0.12)',
+                        borderWidth: 0
+                    },
+                    safeBox: {
+                        type: 'box',
+                        xMin: qMin,
+                        xMax: qMax,
+                        backgroundColor: 'rgba(16, 185, 129, 0.10)',
+                        borderWidth: 0
+                    },
+                    erosionBox: {
+                        type: 'box',
+                        xMin: qMax,
+                        xMax: maxX,
+                        backgroundColor: 'rgba(245, 158, 11, 0.12)',
+                        borderWidth: 0
+                    }
+                }
+            };
+            iprChartInstance.update();
+
+            // Chart 2 Update: Sensitivity
+            const qMinSens = [];
+            const qMaxSens = [];
+            const tubingArea = (Math.PI / 4) * Math.pow(tubingD / 12, 2);
+
+            for (let pG = 100; pG <= 1200; pG += 100) {
+                const rG = 2.7 * gammaG * pG / (zFactor * tempR);
+                const vC = 19.2 * Math.pow((sigma * Math.max(0.1, rhoL - rG)) / Math.pow(rG, 2), 0.25);
+                const qC = (3.06 * pG * vC * tubingArea) / (zFactor * tempR);
+                
+                const rhoMix = rG + (30 * 5.615 / 1e6) * rhoL;
+                const vEros = cFactor / Math.sqrt(Math.max(0.1, rhoMix));
+                const qEros = (3.06 * pG * vEros * tubingArea) / (zFactor * tempR);
+
+                qMinSens.push({ x: pG, y: qC * sfLL });
+                qMaxSens.push({ x: pG, y: Math.min(qEros, aof * 0.85) });
+            }
+
+            critChartInstance.data = {
+                datasets: [
+                    {
+                        label: 'Qmin vs THP',
+                        data: qMinSens,
+                        borderColor: '#f43f5e',
+                        borderWidth: 2.5,
+                        fill: false
+                    },
+                    {
+                        label: 'Qmax vs THP',
+                        data: qMaxSens,
+                        borderColor: '#f59e0b',
+                        borderWidth: 2.5,
+                        fill: false
+                    }
+                ]
+            };
+            critChartInstance.update();
+        }
+    </script>
+</body>
+</html>
